@@ -1,84 +1,143 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/GameReview.dart';
+import '../providers/review_data.dart';
 
 class GameDiaryScreen extends StatelessWidget {
   const GameDiaryScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> diaryEntries = [
-      {
-        'title': 'Elden Ring',
-        'platform': 'PC',
-        'status': 'Completed',
-        'date': 'Mar 26, 2025',
-        'moods': ['Hyped', 'Immersed'],
-        'notes': 'Incredible boss design. Took me 80 hours to beat!'
-      },
-      {
-        'title': 'Stardew Valley',
-        'platform': 'Switch',
-        'status': 'Playing',
-        'date': 'Mar 22, 2025',
-        'moods': ['Relaxed'],
-        'notes': 'My chill game. Farming strawberries this spring.'
-      },
-      {
-        'title': 'Cyberpunk 2077',
-        'platform': 'PC',
-        'status': 'Dropped',
-        'date': 'Mar 18, 2025',
-        'moods': ['Frustrated'],
-        'notes': 'Bugs broke 3 quests in a row. Gave up.'
-      },
-    ];
+    final reviews = Provider.of<ReviewData>(context).reviews;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Game Diary')),
+      appBar: AppBar(title: const Text("Your Game Reviews")),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: diaryEntries.length,
-        itemBuilder: (context, index) {
-          final game = diaryEntries[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 16),
-            color: const Color(0xFF2C2C2E),
-            child: ExpansionTile(
-              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              title: Text(game['title'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              subtitle: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text("${game['platform']} • ${game['status']}"),
-                  Text(game['date'], style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                ],
-              ),
+        itemCount: reviews.length,
+        itemBuilder: (_, index) {
+          final review = reviews[index];
+          return _ReviewCard(review: review);
+        },
+      ),
+    );
+  }
+}
+
+class _ReviewCard extends StatefulWidget {
+  final GameReview review;
+
+  const _ReviewCard({Key? key, required this.review}) : super(key: key);
+
+  @override
+  State<_ReviewCard> createState() => _ReviewCardState();
+}
+
+class _ReviewCardState extends State<_ReviewCard> {
+  bool _showInDepth = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final review = widget.review;
+    final hasInDepth = review.sectionScores != null && review.sectionScores!.isNotEmpty;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                if (game['moods'] != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Wrap(
-                      spacing: 8,
-                      children: List.generate(game['moods'].length, (i) {
-                        return Chip(
-                          label: Text(game['moods'][i]),
-                          backgroundColor: Colors.deepPurple.shade400,
-                          labelStyle: const TextStyle(color: Colors.white),
-                        );
-                      }),
-                    ),
+                if (review.coverUrl != null)
+                  Image.network(
+                    review.coverUrl!,
+                    height: 80,
+                    width: 60,
+                    fit: BoxFit.cover,
                   ),
-                if (game['notes'] != null)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      game['notes'],
-                      style: const TextStyle(color: Colors.white70),
-                    ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        review.gameName,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${review.overallRating}/10 ⭐",
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      if (review.labels?.isNotEmpty == true)
+                        Wrap(
+                          spacing: 6,
+                          children: review.labels!.map((label) {
+                            return Chip(
+                              label: Text(label),
+                              backgroundColor: Colors.deepPurple,
+                              labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                            );
+                          }).toList(),
+                        ),
+                    ],
                   ),
+                ),
               ],
             ),
-          );
-        },
+            const SizedBox(height: 8),
+            Text(review.quickReview, style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 8),
+            Text(
+              "Worth full price: ${review.worthFullPrice ?? "Not Specified"}",
+              style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
+            ),
+            if (hasInDepth) ...[
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text("In-Depth Review"),
+                trailing: Icon(_showInDepth ? Icons.expand_less : Icons.expand_more),
+                onTap: () => setState(() => _showInDepth = !_showInDepth),
+              ),
+              if (_showInDepth)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: review.sectionScores!.entries.map((entry) {
+                    final score = entry.value;
+                    final notes = review.sectionNotes?[entry.key] ?? '';
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "${entry.key}: ${score.toStringAsFixed(1)}/10",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Colors.deepPurpleAccent,
+                            ),
+                          ),
+                          if (notes.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6.0),
+                              child: Text(
+                                notes,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+            ],
+          ],
+        ),
       ),
     );
   }

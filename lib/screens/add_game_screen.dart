@@ -18,11 +18,13 @@ class _AddGameScreenState extends State<AddGameScreen> {
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       final newGame = Game(
-        name: _nameController.text.trim(),
-        summary: _summaryController.text.trim(),
-        coverUrl: null, // Optional: Replace with actual cover if needed
-        platforms: [],  // Optional: Replace with selected platforms
-      );
+  id: DateTime.now().millisecondsSinceEpoch, // or use a proper ID generator
+  name: _nameController.text.trim(),
+  summary: _summaryController.text.trim(),
+  coverUrl: null,
+  platforms: [],
+);
+
 
       Provider.of<GameData>(context, listen: false).addGame(newGame);
       Navigator.pop(context);

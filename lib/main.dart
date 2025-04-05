@@ -5,6 +5,7 @@ import 'screens/discover_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/add_game_screen.dart';
 import 'screens/game_diary_screen.dart';
+import 'providers/review_data.dart';
 import 'screens/search_games_test_screen.dart'; // <-- Added
 import 'data/game_data.dart';
 
@@ -13,11 +14,13 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => GameData()),
+        ChangeNotifierProvider(create: (_) => ReviewData()), // <-- Make sure this line exists
       ],
       child: const GameDiaryApp(),
     ),
   );
 }
+
 
 class GameDiaryApp extends StatelessWidget {
   const GameDiaryApp({Key? key}) : super(key: key);
